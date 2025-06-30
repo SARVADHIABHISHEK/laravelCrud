@@ -23,12 +23,17 @@ class UserController extends Controller
     public function create(Request $request)
     {
 
-        $validator = Validator::make($request->all(), [
-           'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-           'name' => 'required|string|max:255',
-           'email' => 'required|string|email|max:255|unique:users',
-           'password' => 'required|string|min:8|confirmed',
-        ]);
+
+
+
+        $rules = [
+            'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+         ];
+
+
+        $validator = Validator::make($request->all(), $rules);
 
 
         if ($validator->fails()) {
@@ -38,21 +43,38 @@ class UserController extends Controller
         }
 
 
-         $user = new User();
-         $user->name = $request->name;
-         $user->email = $request->email;
-         $user->password = Hash::make($request->password);
+        if ($request->mode === 'edit') {
+            $user = User::findOrFail($request->id);
+            $message = 'User updated successfully!';
+        } else {
+            $user = new User();
+            $message = 'User created successfully!';
+        }
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+
+
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
 
 
         if ($request->hasFile('profile_image')) {
-             $image = $request->file('profile_image');
-             $imageName = time() . '.' . $image->getClientOriginalExtension();
-             $image->move(public_path('images'), $imageName);
-             $user->profile_image = 'images/' . $imageName;
+            // Delete old image if exists
+            if ($user->profile_image) {
+                Storage::disk('public')->delete($user->profile_image);
+            }
+
+            $path = $request->file('profile_image')->store('profile_images', 'public');
+            $user->profile_image = $path;
         }
 
-            $user->save();
-            return redirect()->route('users.showusers')->with('success', 'User created successfully.');
+        $user->save();
+
+        return redirect()->route('users.showusers')
+            ->with('success', $message);
     }
 
 

@@ -56,10 +56,10 @@
                         @foreach($users as $index => $user)
                             <tr>
                                 <td>{{ $index + 1 }}</td>
-                                <td>
-                                  <img src="{{ $user->profile_image ? asset('' . $user->profile_image) : asset('images/default-profile.png') }}"
-                                  alt="Profile Image" class="img-fluid" style="width: 80px; height: 80px;">
-                                </td>
+                              <td>
+    <img src="{{ $user->profile_image ? asset('storage/' . $user->profile_image) : asset('images/default-profile.png') }}"
+         alt="Profile Image" class="img-fluid rounded-circle" style="width: 80px; height: 80px;">
+</td>
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>{{ $user->created_at->format('Y-m-d H:i:s') }}</td>
@@ -105,7 +105,7 @@
     <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <form id="addUserForm" action="{{ route('user.create') }}" method="POST" enctype="multipart/form-data">
+                <form id="addUserForm" method="POST" enctype="multipart/form-data">
                     @csrf
 
                     <input type="hidden" id="formMode" name="mode" value="create">
@@ -211,6 +211,88 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <script>
+    
+        // Handle form submission for adding/editing users
+        $(document).ready(function() {
+            $('addUserModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget); // Button that triggered the modal
+                var mode = button.data('mode'); // Extract info from data-* attributes
+                var modal = $(this);
+
+                // Set form action based on mode
+                if (mode === 'edit') {
+                   // Edit mode
+                    modal.find('.modal-title').text('Edit User');
+                    modal.find('#formMode').val('edit');
+                    modal.find('#userId').val(button.data('id'));
+                    modal.find('#name').val(button.data('name'));
+                    modal.find('#email').val(button.data('email'));
+                    modal.find('#imagePreview').attr('src', button.data('image'));
+                    
+                    // Make password fields optional for edit
+                    modal.find('#password').removeAttr('required');
+                    modal.find('#password_confirmation').removeAttr('required');
+                    modal.find('#passwordFields .text-danger').text('');
+                } else {
+                  // Create mode
+                    modal.find('.modal-title').text('Add New User');
+                    modal.find('#formMode').val('create');
+                    modal.find('#userId').val('');
+                    modal.find('#userForm')[0].reset();
+                    modal.find('#imagePreview').attr('src', '{{ asset("images/default-profile.png") }}');
+                    
+                    // Make password fields required for create
+                    modal.find('#password').attr('required', 'required');
+                    modal.find('#password_confirmation').attr('required', 'required');
+                }
+            });
+
+            $('#addUserForm').submit(function(e){
+
+
+                console.log('Form submitted');
+
+                e.preventDefault();
+                var mode = $('#formMode').val();
+                var userId = $('#userId').val();
+                var url = mode === 'edit' 
+                    ? '{{ route("user.edit", ":id") }}'.replace(':id', userId)
+                    : '{{ route("user.create") }}';
+
+                var formData = new FormData(this); 
+                
+                     // For edit, we need to add the PUT method
+                if (mode === 'edit') {
+                    formData.append('_method', 'PUT');
+                }
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        window.location.reload();
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 422) {
+                            var errors = xhr.responseJSON.errors;
+                            var errorHtml = '<div class="alert alert-danger"><ul>';
+                            
+                            $.each(errors, function(key, value) {
+                                errorHtml += '<li>' + value[0] + '</li>';
+                            });
+                            
+                            errorHtml += '</ul></div>';
+                            $('#userModal .modal-body').prepend(errorHtml);
+                        }
+                    }
+                });
+                
+            })
+
+        });
+
         // Image preview functionality
         document.getElementById('profile_image').addEventListener('change', function(event) {
             const file = event.target.files[0];
@@ -225,6 +307,8 @@
 
         // Delete user confirmation
         $(document).ready(function() {
+            console.log('Document is ready');
+            
             $('.delete-user').click(function() {
                 var userId = $(this).data('id');
                 var url = '{{ route("user.delete", ":id") }}';
@@ -240,6 +324,9 @@
                 $('#imagePreview').attr('src', '{{ asset("images/default-profile.png") }}');
             });
         });
+
+
+
     </script>
 
 </body>

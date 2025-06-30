@@ -19,5 +19,5 @@ Route::get('/', function () {
 });
 Route::get('/users', [UserController::class, 'showusers'])->name('users.showusers');
 Route::post('/user/create', [UserController::class, 'create'])->name('user.create');
-Route::get('/{id}/edit', [UserController::class, 'edit'])->name('user.edit');
+Route::put('user/edit/', [UserController::class, 'create'])->name('user.edit');
 Route::delete('/user/delete/{id}', [UserController::class, 'delete'])->name('user.delete');
