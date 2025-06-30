@@ -1,0 +1,2 @@
+
+/opt/homebrew/bin/php /Users/abhisheksmacm3-24-5/.vscode/extensions/junstyle.php-cs-fixer-0.3.21/php-cs-fixer.phar "$@"
